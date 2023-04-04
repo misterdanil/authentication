@@ -1,16 +1,17 @@
 package authentication.controller;
 
-import org.apache.naming.java.javaURLContextFactory;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
-
-import authentication.dto.ValidatedResponse;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import authentication.dto.ValidatedResponse;
 
 public class AbstractController {
 
@@ -43,6 +44,7 @@ public class AbstractController {
 
 	private Map<String, String> parseFieldErrors(List<FieldError> errors) {
 		Map<String, String> parsedErrors = new HashMap<>();
+		JsonNode node;
 
 		errors.forEach(error -> {
 			parsedErrors.put(error.getField(), error.getDefaultMessage());

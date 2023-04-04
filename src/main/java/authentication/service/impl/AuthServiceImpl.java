@@ -1,6 +1,7 @@
 package authentication.service.impl;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -63,13 +64,15 @@ public class AuthServiceImpl implements AuthService {
 		expMail = Long.valueOf(env.getProperty("exp_mail"));
 	}
 
-	public void signup(RegisterRequest registerRequest) throws EmailExistException, UsernameExistException {
+	public AuthenticationResponse signup(RegisterRequest registerRequest)
+			throws EmailExistException, UsernameExistException {
 		existEmail(registerRequest.getEmail());
 		existUsername(registerRequest.getUsername());
 
 		User user = new User();
 
 		user.setUsername(registerRequest.getUsername());
+
 		user.setPassword(SecurityUtil.getSecurePassword(registerRequest.getPassword(), salt));
 		user.setEmail(registerRequest.getEmail());
 
@@ -87,6 +90,16 @@ public class AuthServiceImpl implements AuthService {
 		email.setSubject("Activation");
 
 		mailService.send(email);
+
+		LoginRequest loginRequest = new LoginRequest();
+		loginRequest.setEmail(registerRequest.getEmail());
+		loginRequest.setPassword(registerRequest.getPassword());
+
+		try {
+			return login(loginRequest);
+		} catch (EmailNotFoundException | PasswordMatchedException e) {
+			throw new RuntimeException("It's impossible", e);
+		}
 	}
 
 	public VerificationToken generateVerificationToken(User user) {
@@ -105,7 +118,7 @@ public class AuthServiceImpl implements AuthService {
 
 		validToken(verificationToken);
 		fetchAndEnableUser(verificationToken);
-		
+
 		verificationTokenRepository.delete(verificationToken);
 	}
 
@@ -114,6 +127,9 @@ public class AuthServiceImpl implements AuthService {
 			throws EmailNotFoundException, PasswordMatchedException {
 
 		User user = userRepository.findByEmail(loginRequest.getEmail());
+		if(user == null) {
+			throw new EmailNotFoundException("test");
+		}
 
 		String password = user.getPassword();
 		String hashedPassword = SecurityUtil.getSecurePassword(loginRequest.getPassword(), salt);
@@ -123,8 +139,8 @@ public class AuthServiceImpl implements AuthService {
 							password, hashedPassword));
 		}
 
-		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user.getUsername(),
-				hashedPassword);
+		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user.getId(),
+				hashedPassword, Collections.emptyList());
 
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 

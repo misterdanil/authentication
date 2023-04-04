@@ -39,13 +39,14 @@ public class DaoAndMemoryOAuth2AuthorizedClientService implements OAuth2Authoriz
 			Map<String, Object> attributes = ((OAuth2AuthenticationToken) principal).getPrincipal().getAttributes();
 
 			if (authorizedClient.getClientRegistration().getRegistrationId().equals("vk")) {
-
+				user.setUsername(String.valueOf((Integer) attributes.get("id")));
 				user.setFirstName((String) attributes.get("first_name"));
 				user.setLastName((String) attributes.get("last_name"));
 				user.setOauth2Id(String.valueOf((Integer) attributes.get("id")));
 				user.setEnabled(true);
 				user.setOauth2Resource("vk");
 			} else if (authorizedClient.getClientRegistration().getRegistrationId().equals("google")) {
+				user.setUsername((String) attributes.get("sub"));
 				user.setFirstName((String) attributes.get("given_name"));
 				user.setLastName((String) attributes.get("family_name"));
 				user.setOauth2Id((String) attributes.get("sub"));

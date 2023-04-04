@@ -1,29 +1,36 @@
 package authentication.security.oauth2.converter;
 
-import java.time.Instant;
+import java.io.IOException;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType;
-import org.springframework.security.oauth2.core.oidc.OidcIdToken;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.context.HttpRequestResponseHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
 
+import com.bebracore.cabinet.model.User;
+import com.bebracore.cabinet.service.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import authentication.dto.AuthenticationResponse;
+import authentication.model.RefreshToken;
+import authentication.security.provider.JwtProvider;
+import authentication.service.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,37 +44,47 @@ public class CookieSecurityContextRepository implements SecurityContextRepositor
 	private static final String ID_TOKEN_NAME = "idToken";
 	private static final String EXPIRES_ID_NAME = "expiresInId";
 	private static final String ISSUED_ID_NAME = "issuedAtId";
+
+	@Autowired
+	private JwtProvider jwtProvider;
+
 	@Autowired
 	@Qualifier("daoAndMemoryOAuth2AuthorizedClientService")
 	private OAuth2AuthorizedClientService authorizedClientService;
 	private SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
 			.getContextHolderStrategy();
 	@Autowired
-	private OAuth2UserService<OAuth2UserRequest, OAuth2User> userService;
+	private OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService;
 	private OidcUserService oidcUserService;
 	@Autowired
 	private ClientRegistrationRepository clientRegistrationRepository;
+	@Autowired
+	private UserService userService;
+	@Autowired
+	private RefreshTokenService refreshTokenService;
+
+	private ObjectMapper mapper = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
 	@Override
 	public SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder) {
-		Cookie[] cookies = requestResponseHolder.getRequest().getCookies();
-		if (cookies == null) {
-			return null;
-		}
-
-		HttpServletRequest request = requestResponseHolder.getRequest();
-
-		if (containsContext(request)) {
-			String registrationId = getCookieValue(REGISTRATION_ID_NAME, request);
-			String accessToken = getCookieValue(ACCESS_TOKEN_NAME, request);
-			String expiresIn = getCookieValue(EXPIRES_IN_NAME, request);
-			String issuedAt = getCookieValue(ISSUED_AT_NAME, request);
+//		Cookie[] cookies = requestResponseHolder.getRequest().getCookies();
+//		if (cookies == null) {
+//			return null;
+//		}
+//
+//		HttpServletRequest request = requestResponseHolder.getRequest();
+//
+//		if (containsContext(request)) {
+//			String registrationId = getCookieValue(REGISTRATION_ID_NAME, request);
+//			String accessToken = getCookieValue(ACCESS_TOKEN_NAME, request);
+//			String expiresIn = getCookieValue(EXPIRES_IN_NAME, request);
+//			String issuedAt = getCookieValue(ISSUED_AT_NAME, request);
 //			if (registrationId.equals("vk")) {
-			OAuth2User oauth2User = userService
-					.loadUser(new OAuth2UserRequest(clientRegistrationRepository.findByRegistrationId(registrationId),
-							new OAuth2AccessToken(TokenType.BEARER, accessToken,
-									Instant.ofEpochSecond(Long.valueOf(issuedAt)),
-									Instant.ofEpochSecond(Long.valueOf(expiresIn)))));
+//			OAuth2User oauth2User = oauth2UserService
+//					.loadUser(new OAuth2UserRequest(clientRegistrationRepository.findByRegistrationId(registrationId),
+//							new OAuth2AccessToken(TokenType.BEARER, accessToken,
+//									Instant.ofEpochSecond(Long.valueOf(issuedAt)),
+//									Instant.ofEpochSecond(Long.valueOf(expiresIn)))));
 //			}
 //			else {
 //				String idToken = getCookieValue(ID_TOKEN_NAME, request);
@@ -79,14 +96,17 @@ public class CookieSecurityContextRepository implements SecurityContextRepositor
 //								Instant.ofEpochSecond(Long.valueOf(issuedAt)),
 //								Instant.ofEpochSecond(Long.valueOf(expiresIn))), new OidcIdToken(idToken, null, null, null), additionalParameters);
 //			}
-			OAuth2AuthenticationToken authenticationToken = new OAuth2AuthenticationToken(oauth2User,
-					Collections.emptyList(), registrationId);
 
-			SecurityContext context = securityContextHolderStrategy.createEmptyContext();
-			context.setAuthentication(authenticationToken);
-
-			return context;
-		}
+//			User user = userService.findByoauth2IdAndOauth2Resource(oauth2User.getName(), registrationId);
+//
+//			UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+//					user.getId(), null, Collections.emptyList());
+//
+//			SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+//			context.setAuthentication(authenticationToken);
+//
+//			return context;
+//		}
 		return null;
 	}
 
@@ -95,32 +115,58 @@ public class CookieSecurityContextRepository implements SecurityContextRepositor
 		if (context.getAuthentication() instanceof OAuth2AuthenticationToken) {
 			OAuth2AuthenticationToken oauth2AuthenticationToken = (OAuth2AuthenticationToken) context
 					.getAuthentication();
-			OAuth2AuthorizedClient authorizedClient = authorizedClientService.loadAuthorizedClient(
-					oauth2AuthenticationToken.getAuthorizedClientRegistrationId(), oauth2AuthenticationToken.getName());
 
-			OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
+			User user = userService.findByoauth2IdAndOauth2Resource(oauth2AuthenticationToken.getName(),
+					oauth2AuthenticationToken.getAuthorizedClientRegistrationId());
 
-			int expires = (int) accessToken.getExpiresAt().getEpochSecond();
-			int maxAge = (int) Instant.ofEpochSecond(expires).minusSeconds(Instant.now().getEpochSecond())
-					.getEpochSecond();
+			UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+					user.getId(), null, Collections.emptyList());
 
-			Cookie accessTokenCookie = new Cookie(ACCESS_TOKEN_NAME, accessToken.getTokenValue());
-			accessTokenCookie.setMaxAge(maxAge);
-			accessTokenCookie.setPath("/");
+			String accessToken = jwtProvider.generateToken(authenticationToken);
 
-			Cookie expiresInCookie = new Cookie(EXPIRES_IN_NAME, String.valueOf(expires));
-			expiresInCookie.setMaxAge(maxAge);
-			expiresInCookie.setPath("/");
+			RefreshToken refreshToken = refreshTokenService.generateRefreshToken();
 
-			Cookie issuedAtCookie = new Cookie(ISSUED_AT_NAME,
-					String.valueOf(accessToken.getIssuedAt().getEpochSecond()));
-			issuedAtCookie.setMaxAge(maxAge);
-			issuedAtCookie.setPath("/");
+			refreshToken = refreshTokenService.save(refreshToken);
 
-			Cookie registrationIdCookie = new Cookie(REGISTRATION_ID_NAME,
-					authorizedClient.getClientRegistration().getRegistrationId());
-			registrationIdCookie.setMaxAge(maxAge);
-			registrationIdCookie.setPath("/");
+			AuthenticationResponse authResponse = new AuthenticationResponse(user.getId(), accessToken, refreshToken);
+
+			String jsonBody;
+			try {
+				jsonBody = mapper.writeValueAsString(authResponse);
+			} catch (JsonProcessingException e) {
+				throw new RuntimeException("Couldn't transform auth response to json", e);
+			}
+
+			response.setHeader("Content-Type", "application/json");
+			try {
+				response.getWriter().write(jsonBody);
+			} catch (IOException e) {
+				throw new RuntimeException("Couldn't save json auth response to response body", e);
+			}
+
+//			OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
+//
+//			int expires = (int) accessToken.getExpiresAt().getEpochSecond();
+//			int maxAge = (int) Instant.ofEpochSecond(expires).minusSeconds(Instant.now().getEpochSecond())
+//					.getEpochSecond();
+//
+//			Cookie accessTokenCookie = new Cookie(ACCESS_TOKEN_NAME, accessToken.getTokenValue());
+//			accessTokenCookie.setMaxAge(maxAge);
+//			accessTokenCookie.setPath("/");
+//
+//			Cookie expiresInCookie = new Cookie(EXPIRES_IN_NAME, String.valueOf(expires));
+//			expiresInCookie.setMaxAge(maxAge);
+//			expiresInCookie.setPath("/");
+//
+//			Cookie issuedAtCookie = new Cookie(ISSUED_AT_NAME,
+//					String.valueOf(accessToken.getIssuedAt().getEpochSecond()));
+//			issuedAtCookie.setMaxAge(maxAge);
+//			issuedAtCookie.setPath("/");
+//
+//			Cookie registrationIdCookie = new Cookie(REGISTRATION_ID_NAME,
+//					authorizedClient.getClientRegistration().getRegistrationId());
+//			registrationIdCookie.setMaxAge(maxAge);
+//			registrationIdCookie.setPath("/");
 
 //			if (oauth2AuthenticationToken.getPrincipal() instanceof OidcUser) {
 //				OidcIdToken idToken = ((OidcUser) oauth2AuthenticationToken.getPrincipal()).getIdToken();
@@ -147,10 +193,10 @@ public class CookieSecurityContextRepository implements SecurityContextRepositor
 //				response.addCookie(issuedAtIdCookie);
 //			}
 
-			response.addCookie(accessTokenCookie);
-			response.addCookie(expiresInCookie);
-			response.addCookie(issuedAtCookie);
-			response.addCookie(registrationIdCookie);
+//			response.addCookie(accessTokenCookie);
+//			response.addCookie(expiresInCookie);
+//			response.addCookie(issuedAtCookie);
+//			response.addCookie(registrationIdCookie);
 		}
 	}
 

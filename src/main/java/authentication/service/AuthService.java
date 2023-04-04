@@ -13,7 +13,7 @@ import authentication.security.error.auth.RefreshTokenNotFoundException;
 import authentication.security.error.auth.UsernameExistException;
 
 public interface AuthService {
-	void signup(RegisterRequest registerRequest) throws EmailExistException, UsernameExistException;
+	AuthenticationResponse signup(RegisterRequest registerRequest) throws EmailExistException, UsernameExistException;
 
 	void verifyAccount(String token) throws ExpiredVerificationTokenException;
 
