@@ -5,16 +5,15 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
-	@NotBlank
-	@Size(max = 128)
+	@NotBlank(message = "Введите ваш псевдоним")
+	@Size(max = 128, message="Превышено максимальное количество символов: 128")
 	@Pattern(regexp = "^[а-яА-Я]{1,128}|[a-zA-Z]{1,128}$")
 	private String username;
-	@NotBlank
-	@Size(max = 128)
-	@Pattern(regexp = "^\\w+@\\w+$")
+	@NotBlank(message = "Введите электронную почту")
+	@Size(max = 128, message = "Превышено максимальное количество символов: 128")
 	private String email;
-	@NotBlank
-	@Size(min = 8, max = 256)
+	@NotBlank(message = "Введите пароль")
+	@Size(min = 8, message = "Пароль должен состоять из минимум 8 символов")
 	private String password;
 
 	public String getUsername() {

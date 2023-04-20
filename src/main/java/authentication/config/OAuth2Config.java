@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -31,6 +32,7 @@ import authentication.security.oauth2.converter.OAuth2JsonTokenConverter;
 import authentication.security.oauth2.converter.OAuth2ResponseClientConverter;
 
 @Configuration
+@PropertySource(value = "classpath:application.properties")
 public class OAuth2Config {
 	private static final String CLIENT_PROPERTY_KEY = "spring.security.oauth2.client.registration.";
 	private List<String> clients = Arrays.asList("google", "vk");
@@ -87,7 +89,7 @@ public class OAuth2Config {
 		String redirectUri = env.getProperty(CLIENT_PROPERTY_KEY + client + ".redirect-uri");
 
 		if (clientId == null || secretId == null) {
-			return null;
+			throw new RuntimeException("what: " + clientId + " " + secretId + " " + redirectUri);
 		}
 
 		if (client.equals("google")) {

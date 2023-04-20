@@ -2,8 +2,10 @@ package authentication.service.impl;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Random;
 import java.util.UUID;
 
+import org.checkerframework.checker.units.qual.min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,7 @@ import authentication.security.provider.JwtProvider;
 import authentication.service.AuthService;
 import authentication.service.MailService;
 import authentication.service.RefreshTokenService;
+import authentication.service.error.VerificationTokenNotFoundException;
 import authentication.util.SecurityUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -84,8 +87,8 @@ public class AuthServiceImpl implements AuthService {
 
 		Email email = new Email();
 
-		email.setBody("Activate account, man by this link: " + "http://localhost:8080/accountVerification/"
-				+ verificationToken.getToken());
+		email.setBody(
+				"Для активации аккаунта введите в предложенное окно следующий код: " + verificationToken.getToken());
 		email.setRecipient(registerRequest.getEmail());
 		email.setSubject("Activation");
 
@@ -103,18 +106,31 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	public VerificationToken generateVerificationToken(User user) {
-		String token = UUID.randomUUID().toString();
+		Random random = new Random();
+
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < 5; i++) {
+			int number = random.nextInt((10 - 1) + 1) + 1;
+			builder.append(number);
+		}
+		if (verificationTokenRepository.findByToken(builder.toString()) != null) {
+			return generateVerificationToken(user);
+		}
 
 		VerificationToken verificationToken = new VerificationToken();
-		verificationToken.setToken(token);
+		verificationToken.setToken(builder.toString());
 		verificationToken.setUser(user);
 		verificationToken.setExpirationDate(Instant.now().plusMillis(expMail));
 
 		return verificationToken;
 	}
 
-	public void verifyAccount(String token) throws ExpiredVerificationTokenException {
+	public void verifyAccount(String token)
+			throws ExpiredVerificationTokenException, VerificationTokenNotFoundException {
 		VerificationToken verificationToken = verificationTokenRepository.findByToken(token);
+		if (verificationToken == null) {
+			throw new VerificationTokenNotFoundException("Couldn't find token: " + token);
+		}
 
 		validToken(verificationToken);
 		fetchAndEnableUser(verificationToken);
@@ -127,7 +143,7 @@ public class AuthServiceImpl implements AuthService {
 			throws EmailNotFoundException, PasswordMatchedException {
 
 		User user = userRepository.findByEmail(loginRequest.getEmail());
-		if(user == null) {
+		if (user == null) {
 			throw new EmailNotFoundException("test");
 		}
 

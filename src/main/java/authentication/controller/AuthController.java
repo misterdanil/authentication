@@ -35,6 +35,7 @@ import authentication.security.error.auth.RefreshTokenNotFoundException;
 import authentication.security.error.auth.UsernameExistException;
 import authentication.service.AuthService;
 import authentication.service.OtpService;
+import authentication.service.error.VerificationTokenNotFoundException;
 import authentication.service.impl.OtpServiceImpl.CodeExpiredException;
 import authentication.service.impl.OtpServiceImpl.CodeNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,10 +61,10 @@ public class AuthController extends AbstractController {
 		try {
 			authResponse = authService.signup(registerRequest);
 		} catch (UsernameExistException e) {
-			result.rejectValue("username", "User with name: " + registerRequest.getUsername() + " already exist");
+			result.rejectValue("username", "username.exist", "Пользователь с таким псеводонимом уже существует");
 			return new ResponseEntity<>(createErrorValidationResponse(result), HttpStatus.BAD_REQUEST);
 		} catch (EmailExistException e) {
-			result.rejectValue("email", "User with email: " + registerRequest.getEmail() + " already exist");
+			result.rejectValue("email", "email.exist", "Пользователь с такой электронной почтой уже существует");
 			return new ResponseEntity<>(createErrorValidationResponse(result), HttpStatus.BAD_REQUEST);
 		}
 
@@ -94,15 +95,22 @@ public class AuthController extends AbstractController {
 
 	}
 
-	@GetMapping("/accountVerification/{token}")
-	public ResponseEntity<ValidatedResponse> verifyAccount(@PathVariable String token) {
+	@PostMapping(value = { "/accountVerification/", "/accountVerification/{token}" })
+	public ResponseEntity<ValidatedResponse> verifyAccount(@PathVariable(required = false) String token) {
 		BindingResult result = new MapBindingResult(new HashMap<>(), "verificationToken");
+		if (token == null) {
+			result.rejectValue("token", "token.notFound", "Введите код");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorValidationResponse(result));
 
+		}
 		try {
 			authService.verifyAccount(token);
 		} catch (ExpiredVerificationTokenException e) {
-			result.rejectValue("token", "Срок токена истёк");
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(createErrorValidationResponse(result));
+			result.rejectValue("token", "token.expired", "Срок токена истёк");
+			return ResponseEntity.status(HttpStatus.GONE).body(createErrorValidationResponse(result));
+		} catch (VerificationTokenNotFoundException e) {
+			result.rejectValue("token", "token.notFound", "Такого кода не существует. Убедитесь в правильности данных");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorValidationResponse(result));
 		}
 		return new ResponseEntity<ValidatedResponse>(HttpStatus.CREATED);
 	}

@@ -11,11 +11,12 @@ import authentication.security.error.auth.PasswordMatchedException;
 import authentication.security.error.auth.RefreshTokenExpiredException;
 import authentication.security.error.auth.RefreshTokenNotFoundException;
 import authentication.security.error.auth.UsernameExistException;
+import authentication.service.error.VerificationTokenNotFoundException;
 
 public interface AuthService {
 	AuthenticationResponse signup(RegisterRequest registerRequest) throws EmailExistException, UsernameExistException;
 
-	void verifyAccount(String token) throws ExpiredVerificationTokenException;
+	void verifyAccount(String token) throws ExpiredVerificationTokenException, VerificationTokenNotFoundException;
 
 	AuthenticationResponse login(LoginRequest loginRequest) throws EmailNotFoundException, PasswordMatchedException;
 

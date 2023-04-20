@@ -1,10 +1,15 @@
 package authentication;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.binary.Hex;
+import org.bson.types.Binary;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,6 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import com.bebracore.productswatching.model.Product;
 import com.bebracore.productswatching.service.FetchingProductsService;
+import com.bebracore.productswatching.service.InfoType;
 import com.bebracore.productswatching.service.ProductService;
 import com.bebracore.productswatching.service.SortType;
 
@@ -25,12 +31,16 @@ import parser.Type;
 @SpringBootApplication(scanBasePackages = { "com.bebracore.mongoconfig", "authentication", "com.bebracore.cabinet",
 		"com.bebracore.productswatching", "com.bebracore.review", "com.bebracore.chat" })
 @EnableMongoRepositories(basePackages = { "com.bebracore.productswatching.dao", "com.bebracore.review.repository",
-		"com.bebracore.chat.repository" })
+		"com.bebracore.chat.repository", "com.bebracore.cabinet.repository", "authentication.repository" })
 public class Main {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws MalformedURLException, IOException {
 		ApplicationContext ac = SpringApplication.run(Main.class, args);
 		String[] names = ac.getBeanDefinitionNames();
 		System.out.println();
+//		String hex = Hex.encodeHexString(new Binary(
+//				new URL("https://static.eldorado.ru/photos/mv/Big/30059399bb5.jpg").openStream().readAllBytes())
+//				.getData());
+//		System.out.println(hex);
 //		FetchingProductsService serv = ac.getBean(FetchingProductsService.class);
 //		serv.fetchResources("https://www.mvideo.ru/bff/products/listing", Type.MVIDEO, InfoType.LONG);
 //		serv.fetchResources("https://www.eldorado.ru/c/smartfony", Type.ELDORADO, InfoType.SHORT);
