@@ -166,7 +166,7 @@ public class AuthServiceImpl implements AuthService {
 
 		refreshToken = refreshTokenService.save(refreshToken);
 
-		return new AuthenticationResponse(user.getUsername(), accessToken, refreshToken);
+		return new AuthenticationResponse(user.getId(), user.getUsername(), accessToken, refreshToken);
 	}
 
 	@Override
@@ -188,7 +188,7 @@ public class AuthServiceImpl implements AuthService {
 		refreshToken = refreshTokenService.generateRefreshToken();
 
 		refreshToken = refreshTokenService.save(refreshToken);
-
+		
 		return new AuthenticationResponse(refreshTokenRequest.getUsername(), accessToken, refreshToken);
 	}
 

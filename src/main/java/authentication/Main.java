@@ -46,20 +46,24 @@ public class Main {
 //		serv.fetchResources("https://www.eldorado.ru/c/smartfony", Type.ELDORADO, InfoType.SHORT);
 
 //		ProductService serv = ac.getBean(ProductService.class);
-//		List<Product> pr = serv.getSmartphones(null, null, null, null, null, null, null, null, null, SortType.CHEAP,
+//		List<Product> pr = serv.getSmartphones(null, null, 1500, null, null, null, null, null, null, SortType.CHEAP,
 //				null);
 //		FetchingProductsService f = ac.getBean(FetchingProductsService.class);
-
-//		MvideoParser parser = new MvideoParser();
 //
+//		MvideoParser parser = new MvideoParser();
+////
 //		for (int i = 0; i < pr.size(); i++) {
 //			pr.get(i).getResources().forEach(res -> {
 //				List<Review> reviews = f.fetchReviews(res);
-//				res.addReviews(reviews);
-//				serv.save(pr);
-//				System.out.println();
+//				if (reviews != null && res.getType().equals(Type.MVIDEO)) {
+//					res.getReviews().clear();
+//					res.addReviews(reviews);
+//					System.out.println(reviews);
+//				}
 //			});
+//			System.out.println("page is " + i);
 //		}
+//		serv.save(pr);
 //
 //		parser.finishWebDriver();
 

@@ -128,7 +128,7 @@ public class CookieSecurityContextRepository implements SecurityContextRepositor
 
 			refreshToken = refreshTokenService.save(refreshToken);
 
-			AuthenticationResponse authResponse = new AuthenticationResponse(user.getId(), accessToken, refreshToken);
+			AuthenticationResponse authResponse = new AuthenticationResponse(user.getId(), user.getUsername(), accessToken, refreshToken);
 
 			String jsonBody;
 			try {

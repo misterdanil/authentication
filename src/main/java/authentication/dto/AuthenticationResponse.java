@@ -3,15 +3,32 @@ package authentication.dto;
 import authentication.model.RefreshToken;
 
 public class AuthenticationResponse {
+	private String id;
 	private String username;
 	private String accessToken;
 	private RefreshToken refreshToken;
+
+	public AuthenticationResponse(String id, String username, String accessToken, RefreshToken refreshToken) {
+		super();
+		this.id = id;
+		this.username = username;
+		this.accessToken = accessToken;
+		this.refreshToken = refreshToken;
+	}
 
 	public AuthenticationResponse(String username, String accessToken, RefreshToken refreshToken) {
 		super();
 		this.username = username;
 		this.accessToken = accessToken;
 		this.refreshToken = refreshToken;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public String getUsername() {
