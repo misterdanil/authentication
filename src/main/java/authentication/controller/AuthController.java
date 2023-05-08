@@ -112,7 +112,7 @@ public class AuthController extends AbstractController {
 			result.rejectValue("token", "token.notFound", "Такого кода не существует. Убедитесь в правильности данных");
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorValidationResponse(result));
 		}
-		return new ResponseEntity<ValidatedResponse>(HttpStatus.CREATED);
+		return new ResponseEntity<ValidatedResponse>(createSuccessValidationResponse(null), HttpStatus.CREATED);
 	}
 
 	@PostMapping("/refresh/token")
